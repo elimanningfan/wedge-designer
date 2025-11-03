@@ -6,6 +6,7 @@ This is the entry point for generating wedge STEP files from configuration.
 import cadquery as cq
 import os
 import argparse
+import math
 from datetime import datetime
 from typing import Optional
 
@@ -65,20 +66,33 @@ def generate_wedge(config_path: str, output_dir: str = "output/step_files") -> s
     # 4. Position and combine components
     print("  Assembling components...")
 
-    # Position hosel: move it up to sit on top of blade
-    # The hosel should be at the heel side
+    # Get key dimensions
+    face_height = wedge_specs.get('face_height', 49)
+    lie_angle = wedge_specs.get('lie', 64)
+
+    # Position hosel at heel
+    # The hosel should emerge from the TOP of the blade at the heel
+    # After loft is applied, the top is tilted back
+    heel_x = -blade_length / 2 + 8  # 8mm from heel edge
+
+    # Hosel starts at top of blade
+    # After 56° loft, the top of face is pushed back and up
+    # Need to calculate where top-of-blade is after rotation
+    loft_rad = math.radians(wedge_specs.get('loft', 56))
+    top_offset_y = face_height * math.sin(loft_rad)  # How far back top moved
+    top_offset_z = face_height * math.cos(loft_rad)  # How high top is
+
     hosel_positioned = hosel_geometry.translate((
-        -blade_length / 2 + 10,  # Near heel (left side)
-        0,
-        45  # Height above ground
+        heel_x,           # At heel
+        top_offset_y,     # Offset back due to loft
+        top_offset_z      # At top of blade
     ))
 
-    # Apply lie angle to hosel (tilt it)
-    lie_angle = wedge_specs.get('lie', 64)
+    # Apply lie angle to hosel (tilt it toward player)
     hosel_positioned = hosel_positioned.rotate(
-        (-blade_length / 2 + 10, 0, 45),  # Rotate around heel position
-        (1, 0, 0),  # Rotate around X axis (heel-toe line)
-        -(90 - lie_angle)  # Convert lie angle to tilt
+        (heel_x, top_offset_y, top_offset_z),  # Rotate around hosel base
+        (1, 0, 0),                              # Around X axis (heel-toe)
+        -(90 - lie_angle)                       # Tilt angle
     )
 
     # Combine all components using union

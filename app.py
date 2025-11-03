@@ -168,10 +168,24 @@ with col2:
                 })
                 sole_geo = sole.generate_flat_sole(blade_length)
 
-                # Quick assembly (no grind for speed)
-                hosel_positioned = hosel_geo.translate((-blade_length/2 + 10, 0, 45))
+                # Position hosel properly (matching main generator logic)
+                import math
+
+                heel_x = -blade_length / 2 + 8
+                loft_rad = math.radians(loft)
+                top_offset_y = face_height * math.sin(loft_rad)
+                top_offset_z = face_height * math.cos(loft_rad)
+
+                hosel_positioned = hosel_geo.translate((
+                    heel_x,
+                    top_offset_y,
+                    top_offset_z
+                ))
+
                 hosel_positioned = hosel_positioned.rotate(
-                    (-blade_length/2 + 10, 0, 45), (1, 0, 0), -(90 - lie)
+                    (heel_x, top_offset_y, top_offset_z),
+                    (1, 0, 0),
+                    -(90 - lie)
                 )
 
                 preview_wedge = blade_geo.union(sole_geo).union(hosel_positioned)

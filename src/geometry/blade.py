@@ -37,39 +37,66 @@ class WedgeBlade:
     
     def generate(self) -> cq.Workplane:
         """
-        Generate blade geometry.
+        Generate blade geometry with realistic golf wedge profile.
 
         Returns:
             CadQuery Workplane with blade geometry
 
         Process:
-            1. Create face profile (rectangular outline)
-            2. Extrude to create blade body
+            1. Create blade profile (side view - like teardrop)
+            2. Extrude along heel-toe axis
             3. Apply loft angle to face
-            4. Add topline details
+            4. Create realistic club head shape
         """
         import math
 
-        # Blade body thickness (front to back)
-        blade_thickness = 10  # mm - thickness at back of blade
+        # Blade profile (looking from toe/heel - the cross-section)
+        # Real wedges are thicker at bottom, thinner at top, with curved back
 
-        # Create blade as a box: length (heel-toe) x height x thickness
-        # Start with blade vertical, we'll rotate for loft later
+        # Key dimensions for profile
+        topline_offset = 3.0  # Distance from face to back at topline
+        sole_offset = 7.0     # Distance from face to back at sole
+
+        # Create profile using points that define the wedge cross-section
+        # Start at leading edge (bottom-front) and go counter-clockwise
+
+        profile_points = [
+            (0, 0),                                      # Leading edge (front-bottom)
+            (0, self.face_height),                       # Top of face (front-top)
+            (topline_offset, self.face_height),          # Back of topline (back-top)
+            (sole_offset, self.face_height * 0.3),       # Back-middle (curved)
+            (sole_offset, 0),                            # Back-bottom (sole level)
+        ]
+
+        # Create the 2D profile on YZ plane
+        # Then extrude along X axis (heel to toe)
         blade = (
-            cq.Workplane("XY")
-            .box(self.blade_length, blade_thickness, self.face_height)
+            cq.Workplane("YZ")
+            .moveTo(profile_points[0][0], profile_points[0][1])
         )
 
-        # Move blade so bottom is at z=0 (sole level)
-        blade = blade.translate((0, 0, self.face_height / 2))
+        for point in profile_points[1:]:
+            blade = blade.lineTo(point[0], point[1])
 
-        # Apply loft angle - rotate around X axis (heel-toe axis)
-        # Loft makes the face lean back
-        # Rotate at the bottom (leading edge)
+        blade = blade.close()
+
+        # Extrude along heel-toe axis (X direction)
+        blade = blade.extrude(self.blade_length)
+
+        # Center the blade on X axis
+        blade = blade.translate((-self.blade_length / 2, 0, 0))
+
+        # Apply loft angle - rotate around X axis (heel-toe line)
+        # Rotate at the leading edge (front-bottom corner)
         blade = blade.rotate((0, 0, 0), (1, 0, 0), -self.loft)
 
-        # Note: Skipping topline fillet for now - can add later if needed
-        # Edge selection after rotation is tricky
+        # Round the topline for realism
+        try:
+            # Find and fillet the topline edge
+            blade = blade.edges("|X").edges(">Z").fillet(1.0)
+        except:
+            # If fillet fails, continue - better to have geometry than fail
+            pass
 
         return blade
 

@@ -56,8 +56,8 @@ class WedgeSole:
     
     def generate_flat_sole(self, blade_length: float) -> cq.Workplane:
         """
-        Generate a basic flat sole with bounce angle.
-        This is Phase 2.4 - simple sole before adding grinds.
+        Generate a sole that extends from blade bottom.
+        Creates a thin sole extension with bounce angle.
 
         Args:
             blade_length: Length of blade (heel to toe) in mm
@@ -65,21 +65,21 @@ class WedgeSole:
         Returns:
             CadQuery Workplane with flat sole geometry
         """
-        # Sole thickness (vertical dimension)
-        sole_thickness = 8  # mm
+        # Sole is a thin bottom extension
+        # Should blend with blade, not be a separate thick chunk
+        sole_thickness = 3  # mm (much thinner!)
 
-        # Create sole as a box: length (heel-toe) x width (front-back) x thickness (up-down)
+        # Create sole profile - narrow and follows bounce angle
         sole = (
             cq.Workplane("XY")
             .box(blade_length, self.width_center, sole_thickness)
         )
 
-        # Position sole so top is at z=0 (will connect to blade bottom)
+        # Position below the blade (z=0 is blade bottom)
         sole = sole.translate((0, 0, -sole_thickness / 2))
 
-        # Apply bounce angle - rotate around X axis (heel-toe axis)
-        # Positive bounce tilts the trailing edge up
-        # Rotate around the leading edge (front of sole)
+        # Apply bounce angle around leading edge
+        # This tilts the sole/trailing edge up
         sole = sole.rotate((0, -self.width_center / 2, 0), (1, 0, 0), self.bounce)
 
         return sole
