@@ -26,3 +26,10 @@ output/step_files/*.stp
 # Keep directory structure
 !output/step_files/.gitkeep
 !configs/.gitkeep
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db

@@ -63,6 +63,26 @@ streamlit run app.py --server.port 8000
 
 See **[START_WEB_UI.md](START_WEB_UI.md)** for detailed instructions and tips.
 
+## 🌍 Deploy & Share (NEW!)
+
+Want to share your wedge designer with the world? Deploy it for free!
+
+### Quick Deploy to Streamlit Cloud:
+
+1. Go to **[share.streamlit.io](https://share.streamlit.io)**
+2. Sign in with GitHub
+3. Click "New app"
+4. Select this repository and `app.py`
+5. Click "Deploy!"
+
+**Your app will be live in minutes!** Share the URL with anyone.
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for complete deployment guide including:
+- Streamlit Community Cloud (free, easiest)
+- Railway (better for heavy dependencies)
+- Docker deployment options
+- Troubleshooting tips
+
 ## Configuration
 
 Edit `configs/vokey_56_8.yaml` to customize your wedge:
