@@ -44,6 +44,25 @@ Open the generated STEP file in:
 - Fusion 360 (free for hobbyists)
 - Any CAD software that supports STEP format
 
+## 🌐 Web Interface (NEW!)
+
+Launch an interactive web UI for real-time wedge design:
+
+```bash
+streamlit run app.py --server.port 8000
+```
+
+**Opens at:** http://localhost:8000
+
+**Features:**
+- 🎛️ Interactive sliders for all parameters (loft, bounce, dimensions)
+- 🎨 Real-time grind profile classification
+- ✅ USGA compliance checking
+- 📥 One-click STEP file generation and download
+- 📊 Weight and CG validation
+
+See **[START_WEB_UI.md](START_WEB_UI.md)** for detailed instructions and tips.
+
 ## Configuration
 
 Edit `configs/vokey_56_8.yaml` to customize your wedge:
