@@ -252,70 +252,27 @@ def create_3d_preview(cq_solid: cq.Workplane):
         import numpy as np
         import struct
 
-        # Get tessellation directly from CadQuery
-        # Use CadQuery's built-in tessellation
+        # Use CadQuery's built-in tessellate() method (simpler and more reliable!)
         shape = cq_solid.val()
 
-        # Tessellate the shape
-        from OCP.BRepMesh import BRepMesh_IncrementalMesh
-        from OCP.TopExp import TopExp_Explorer
-        from OCP.TopAbs import TopAbs_FACE
-        from OCP.BRep import BRep_Tool
-        from OCP.TopLoc import TopLoc_Location
-        from OCP.TopoDS import TopoDS, TopoDS_Face
+        # Tessellate with high quality settings
+        # tolerance: 0.05mm linear deflection (10x better than before!)
+        # angularTolerance: 0.1 radians (~5.7 degrees) for smooth curves
+        vertices_raw, triangles_raw = shape.tessellate(
+            tolerance=0.05,
+            angularTolerance=0.1
+        )
 
-        # Create mesh with quality settings
-        mesh = BRepMesh_IncrementalMesh(shape.wrapped, 0.5, False, 0.5, True)
-        mesh.Perform()
-
-        # Collect all vertices and faces
-        vertices = []
-        faces = []
-        vertex_offset = 0
-
-        # Iterate through faces
-        face_explorer = TopExp_Explorer(shape.wrapped, TopAbs_FACE)
-
-        while face_explorer.More():
-            # Cast to TopoDS_Face properly
-            face_shape = face_explorer.Current()
-            face = TopoDS.Face_s(face_shape)
-
-            loc = TopLoc_Location()
-            triangulation = BRep_Tool.Triangulation_s(face, loc)
-
-            if triangulation:
-                trsf = loc.Transformation()
-
-                # Get vertices for this face
-                for i in range(1, triangulation.NbNodes() + 1):
-                    pnt = triangulation.Node(i)
-                    pnt.Transform(trsf)
-                    vertices.append([pnt.X(), pnt.Y(), pnt.Z()])
-
-                # Get triangles for this face
-                for i in range(1, triangulation.NbTriangles() + 1):
-                    triangle = triangulation.Triangle(i)
-                    idx1, idx2, idx3 = triangle.Get()
-                    # Adjust indices (1-based to 0-based, add offset)
-                    faces.append([
-                        vertex_offset + idx1 - 1,
-                        vertex_offset + idx2 - 1,
-                        vertex_offset + idx3 - 1
-                    ])
-
-                vertex_offset += triangulation.NbNodes()
-
-            face_explorer.Next()
-
-        if not vertices or not faces:
+        if not vertices_raw or not triangles_raw:
             # Fallback to bounding box
             bbox = shape.BoundingBox()
             return create_bbox_preview(bbox)
 
-        # Convert to numpy
-        vertices = np.array(vertices)
-        faces = np.array(faces)
+        # Convert CadQuery Vector objects to numpy array
+        vertices = np.array([[v.x, v.y, v.z] for v in vertices_raw])
+
+        # Convert triangle tuples to numpy array
+        faces = np.array(triangles_raw)
 
         # Create Plotly 3D mesh
         fig = go.Figure(data=[
@@ -326,15 +283,15 @@ def create_3d_preview(cq_solid: cq.Workplane):
                 i=faces[:, 0],
                 j=faces[:, 1],
                 k=faces[:, 2],
-                color='#4A90E2',
-                opacity=0.95,
-                flatshading=False,
+                color='#C0C0C0',  # Metallic silver (golf club appearance)
+                opacity=1.0,
+                flatshading=False,  # Smooth shading
                 lighting=dict(
-                    ambient=0.5,
-                    diffuse=0.8,
-                    specular=0.4,
-                    roughness=0.2,
-                    fresnel=0.2
+                    ambient=0.3,    # Less ambient - more depth
+                    diffuse=0.9,    # Higher diffuse - realistic surface
+                    specular=0.6,   # Higher specular - metallic shine
+                    roughness=0.15, # Lower roughness - polished metal
+                    fresnel=0.4     # Higher fresnel - better reflections
                 ),
                 lightposition=dict(x=200, y=200, z=1000)
             )
