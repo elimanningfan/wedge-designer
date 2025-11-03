@@ -19,7 +19,7 @@ from wedge_generator import generate_wedge
 from geometry.hosel import WedgeHosel
 from geometry.blade import WedgeBlade
 from geometry.sole import WedgeSole
-from utils import calculate_weight, calculate_center_of_gravity
+from utils import calculate_weight, calculate_center_of_gravity, create_3d_preview
 
 # Page config
 st.set_page_config(
@@ -134,10 +134,65 @@ with col1:
         st.warning(f"⚠️ Non-standard bore diameter ({hosel_bore}mm). Standard is 9.4mm (0.370\")")
 
 with col2:
-    st.header("🚀 Generate Wedge")
+    st.header("🎨 Preview & Generate")
+
+    # Preview 3D button
+    if st.button("🔍 Preview 3D Model", use_container_width=True):
+        with st.spinner("Generating 3D preview..."):
+            try:
+                # Build minimal geometry for preview (faster)
+                hosel = WedgeHosel({
+                    'height': hosel_height,
+                    'outer_diameter': hosel_outer,
+                    'bore_diameter': hosel_bore,
+                    'bore_depth': hosel_bore_depth
+                })
+                hosel_geo = hosel.generate()
+
+                blade = WedgeBlade({
+                    'blade_length': blade_length,
+                    'face_height': face_height,
+                    'topline_thickness': topline_thickness,
+                    'loft': loft,
+                    'lie': lie
+                })
+                blade_geo = blade.generate()
+
+                sole = WedgeSole({
+                    'bounce': bounce,
+                    'sole': {
+                        'width_center': sole_width,
+                        'heel_relief_angle': heel_relief,
+                        'toe_relief_angle': toe_relief
+                    }
+                })
+                sole_geo = sole.generate_flat_sole(blade_length)
+
+                # Quick assembly (no grind for speed)
+                hosel_positioned = hosel_geo.translate((-blade_length/2 + 10, 0, 45))
+                hosel_positioned = hosel_positioned.rotate(
+                    (-blade_length/2 + 10, 0, 45), (1, 0, 0), -(90 - lie)
+                )
+
+                preview_wedge = blade_geo.union(sole_geo).union(hosel_positioned)
+
+                # Create 3D visualization
+                fig = create_3d_preview(preview_wedge)
+
+                # Display in Streamlit
+                st.plotly_chart(fig, use_container_width=True)
+
+                st.success("✓ Preview generated! Drag to rotate, scroll to zoom")
+                st.info("💡 This is a simplified preview. Full details (grooves, etc.) appear in the final STEP file.")
+
+            except Exception as e:
+                st.error(f"Preview error: {str(e)}")
+                st.info("Try generating the STEP file instead and open in FreeCAD for full visualization.")
+
+    st.markdown("---")
 
     # Generate button
-    if st.button("Generate STEP File", type="primary", use_container_width=True):
+    if st.button("⚡ Generate STEP File", type="primary", use_container_width=True):
         with st.spinner("Generating wedge geometry..."):
             try:
                 # Build configuration dict

@@ -237,16 +237,215 @@ def rad_to_deg(radians: float) -> float:
     return radians * 180.0 / math.pi
 
 
+def create_3d_preview(cq_solid: cq.Workplane):
+    """
+    Create an interactive 3D preview using Plotly.
+
+    Args:
+        cq_solid: CadQuery Workplane with geometry
+
+    Returns:
+        Plotly figure object for Streamlit
+    """
+    try:
+        import plotly.graph_objects as go
+        import numpy as np
+
+        # Get tessellation (convert to mesh)
+        # CadQuery objects can be tessellated for rendering
+        shape = cq_solid.val()
+
+        # Get vertices and faces using OCP
+        from OCP.BRepMesh import BRepMesh_IncrementalMesh
+        from OCP.TopLoc import TopLoc_Location
+        from OCP.BRep import BRep_Tool
+        from OCP.TopExp import TopExp_Explorer
+        from OCP.TopAbs import TopAbs_FACE
+        from OCP.Poly import Poly_Triangulation
+
+        # Mesh the shape
+        linear_deflection = 0.1
+        angular_deflection = 0.1
+        BRepMesh_IncrementalMesh(shape.wrapped, linear_deflection, False, angular_deflection, True)
+
+        # Collect vertices and faces
+        vertices_list = []
+        faces_list = []
+        vertex_offset = 0
+
+        # Explore faces
+        explorer = TopExp_Explorer(shape.wrapped, TopAbs_FACE)
+
+        while explorer.More():
+            face = explorer.Current()
+            location = TopLoc_Location()
+            triangulation = BRep_Tool.Triangulation_s(face, location)
+
+            if triangulation:
+                # Get transformation
+                trsf = location.Transformation()
+
+                # Get vertices
+                num_vertices = triangulation.NbNodes()
+                for i in range(1, num_vertices + 1):
+                    vertex = triangulation.Node(i)
+                    # Apply transformation
+                    vertex.Transform(trsf)
+                    vertices_list.append([vertex.X(), vertex.Y(), vertex.Z()])
+
+                # Get triangles
+                num_triangles = triangulation.NbTriangles()
+                for i in range(1, num_triangles + 1):
+                    triangle = triangulation.Triangle(i)
+                    n1, n2, n3 = triangle.Get()
+                    # Adjust for vertex offset and 0-indexing
+                    faces_list.append([
+                        vertex_offset + n1 - 1,
+                        vertex_offset + n2 - 1,
+                        vertex_offset + n3 - 1
+                    ])
+
+                vertex_offset += num_vertices
+
+            explorer.Next()
+
+        if not vertices_list or not faces_list:
+            # Fallback: create a simple bounding box visualization
+            bbox = shape.BoundingBox()
+            return create_bbox_preview(bbox)
+
+        # Convert to numpy arrays
+        vertices = np.array(vertices_list)
+        faces = np.array(faces_list)
+
+        # Create Plotly mesh
+        fig = go.Figure(data=[
+            go.Mesh3d(
+                x=vertices[:, 0],
+                y=vertices[:, 1],
+                z=vertices[:, 2],
+                i=faces[:, 0],
+                j=faces[:, 1],
+                k=faces[:, 2],
+                color='lightblue',
+                opacity=0.8,
+                flatshading=True,
+                lighting=dict(ambient=0.5, diffuse=0.8, specular=0.2),
+                lightposition=dict(x=100, y=100, z=1000)
+            )
+        ])
+
+        # Update layout
+        fig.update_layout(
+            scene=dict(
+                xaxis=dict(title='X (heel-toe) mm', backgroundcolor="rgb(230, 230,230)"),
+                yaxis=dict(title='Y (front-back) mm', backgroundcolor="rgb(230, 230,230)"),
+                zaxis=dict(title='Z (height) mm', backgroundcolor="rgb(230, 230,230)"),
+                aspectmode='data'
+            ),
+            width=700,
+            height=600,
+            margin=dict(l=0, r=0, b=0, t=30),
+            title="3D Wedge Preview (Interactive - Drag to Rotate)"
+        )
+
+        return fig
+
+    except Exception as e:
+        print(f"3D preview error: {str(e)}")
+        # Return a simple error figure
+        import plotly.graph_objects as go
+        fig = go.Figure()
+        fig.add_annotation(
+            text=f"3D preview unavailable: {str(e)}<br>Generate STEP file and open in FreeCAD for full visualization",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, showarrow=False
+        )
+        fig.update_layout(width=700, height=600)
+        return fig
+
+
+def create_bbox_preview(bbox):
+    """Create a simple bounding box preview."""
+    import plotly.graph_objects as go
+
+    # Create bounding box corners
+    x = [bbox.xmin, bbox.xmax]
+    y = [bbox.ymin, bbox.ymax]
+    z = [bbox.zmin, bbox.zmax]
+
+    # Create box edges
+    fig = go.Figure()
+
+    # Add wireframe box
+    edges = [
+        # Bottom rectangle
+        ([x[0], x[1]], [y[0], y[0]], [z[0], z[0]]),
+        ([x[1], x[1]], [y[0], y[1]], [z[0], z[0]]),
+        ([x[1], x[0]], [y[1], y[1]], [z[0], z[0]]),
+        ([x[0], x[0]], [y[1], y[0]], [z[0], z[0]]),
+        # Top rectangle
+        ([x[0], x[1]], [y[0], y[0]], [z[1], z[1]]),
+        ([x[1], x[1]], [y[0], y[1]], [z[1], z[1]]),
+        ([x[1], x[0]], [y[1], y[1]], [z[1], z[1]]),
+        ([x[0], x[0]], [y[1], y[0]], [z[1], z[1]]),
+        # Vertical edges
+        ([x[0], x[0]], [y[0], y[0]], [z[0], z[1]]),
+        ([x[1], x[1]], [y[0], y[0]], [z[0], z[1]]),
+        ([x[1], x[1]], [y[1], y[1]], [z[0], z[1]]),
+        ([x[0], x[0]], [y[1], y[1]], [z[0], z[1]]),
+    ]
+
+    for edge in edges:
+        fig.add_trace(go.Scatter3d(
+            x=edge[0], y=edge[1], z=edge[2],
+            mode='lines',
+            line=dict(color='blue', width=4),
+            showlegend=False
+        ))
+
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(title='X (mm)'),
+            yaxis=dict(title='Y (mm)'),
+            zaxis=dict(title='Z (mm)'),
+            aspectmode='data'
+        ),
+        width=700,
+        height=600,
+        title="Bounding Box Preview"
+    )
+
+    return fig
+
+
+def export_stl_for_preview(cq_solid: cq.Workplane, filepath: str):
+    """
+    Export geometry to STL format for 3D viewing.
+
+    Args:
+        cq_solid: CadQuery Workplane with geometry
+        filepath: Path to save STL file
+    """
+    import os
+
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(filepath) if os.path.dirname(filepath) else '.', exist_ok=True)
+
+    # Export to STL
+    cq.exporters.export(cq_solid, filepath)
+
+
 if __name__ == "__main__":
     # Example usage
     print("Wedge Design Utilities")
     print("="*60)
-    
+
     # Test material density lookup
     print("\nAvailable materials:")
     for material, density in MATERIAL_DENSITIES.items():
         print(f"  {material}: {density} g/cm³")
-    
+
     # Example volume calculation
     print("\nExample: 50cm³ wedge head in 8620 steel")
     volume_cm3 = 50
