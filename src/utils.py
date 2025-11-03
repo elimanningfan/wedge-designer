@@ -250,68 +250,60 @@ def create_3d_preview(cq_solid: cq.Workplane):
     try:
         import plotly.graph_objects as go
         import numpy as np
+        import tempfile
+        import os
 
-        # Get tessellation (convert to mesh)
-        # CadQuery objects can be tessellated for rendering
-        shape = cq_solid.val()
+        # Export to STL (simpler than OCP tessellation)
+        with tempfile.NamedTemporaryFile(suffix='.stl', delete=False) as tmp:
+            tmp_path = tmp.name
 
-        # Get vertices and faces using OCP
-        from OCP.BRepMesh import BRepMesh_IncrementalMesh
-        from OCP.TopLoc import TopLoc_Location
-        from OCP.BRep import BRep_Tool
-        from OCP.TopExp import TopExp_Explorer
-        from OCP.TopAbs import TopAbs_FACE
-        from OCP.Poly import Poly_Triangulation
+        try:
+            # Export the solid to STL
+            cq.exporters.export(cq_solid, tmp_path, exportType='STL')
 
-        # Mesh the shape
-        linear_deflection = 0.1
-        angular_deflection = 0.1
-        BRepMesh_IncrementalMesh(shape.wrapped, linear_deflection, False, angular_deflection, True)
+            # Read STL file and parse triangles
+            vertices_list = []
+            faces_list = []
+            vertex_map = {}
+            vertex_count = 0
 
-        # Collect vertices and faces
-        vertices_list = []
-        faces_list = []
-        vertex_offset = 0
+            with open(tmp_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('vertex'):
+                        # Parse vertex coordinates
+                        parts = line.split()
+                        vertex = (float(parts[1]), float(parts[2]), float(parts[3]))
 
-        # Explore faces
-        explorer = TopExp_Explorer(shape.wrapped, TopAbs_FACE)
+                        # Add unique vertices
+                        if vertex not in vertex_map:
+                            vertex_map[vertex] = vertex_count
+                            vertices_list.append(vertex)
+                            vertex_count += 1
 
-        while explorer.More():
-            face = explorer.Current()
-            location = TopLoc_Location()
-            triangulation = BRep_Tool.Triangulation_s(face, location)
+            # Re-read for faces
+            current_face = []
+            with open(tmp_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith('vertex'):
+                        parts = line.split()
+                        vertex = (float(parts[1]), float(parts[2]), float(parts[3]))
+                        current_face.append(vertex_map[vertex])
 
-            if triangulation:
-                # Get transformation
-                trsf = location.Transformation()
+                    if line.startswith('endfacet'):
+                        if len(current_face) == 3:
+                            faces_list.append(current_face)
+                        current_face = []
 
-                # Get vertices
-                num_vertices = triangulation.NbNodes()
-                for i in range(1, num_vertices + 1):
-                    vertex = triangulation.Node(i)
-                    # Apply transformation
-                    vertex.Transform(trsf)
-                    vertices_list.append([vertex.X(), vertex.Y(), vertex.Z()])
-
-                # Get triangles
-                num_triangles = triangulation.NbTriangles()
-                for i in range(1, num_triangles + 1):
-                    triangle = triangulation.Triangle(i)
-                    n1, n2, n3 = triangle.Get()
-                    # Adjust for vertex offset and 0-indexing
-                    faces_list.append([
-                        vertex_offset + n1 - 1,
-                        vertex_offset + n2 - 1,
-                        vertex_offset + n3 - 1
-                    ])
-
-                vertex_offset += num_vertices
-
-            explorer.Next()
+        finally:
+            # Clean up temp file
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
 
         if not vertices_list or not faces_list:
-            # Fallback: create a simple bounding box visualization
-            bbox = shape.BoundingBox()
+            # Fallback to bounding box
+            bbox = cq_solid.val().BoundingBox()
             return create_bbox_preview(bbox)
 
         # Convert to numpy arrays
@@ -327,10 +319,15 @@ def create_3d_preview(cq_solid: cq.Workplane):
                 i=faces[:, 0],
                 j=faces[:, 1],
                 k=faces[:, 2],
-                color='lightblue',
-                opacity=0.8,
-                flatshading=True,
-                lighting=dict(ambient=0.5, diffuse=0.8, specular=0.2),
+                color='#4A90E2',  # Nice blue color
+                opacity=0.9,
+                flatshading=False,
+                lighting=dict(
+                    ambient=0.6,
+                    diffuse=0.7,
+                    specular=0.5,
+                    roughness=0.3
+                ),
                 lightposition=dict(x=100, y=100, z=1000)
             )
         ])
@@ -338,31 +335,55 @@ def create_3d_preview(cq_solid: cq.Workplane):
         # Update layout
         fig.update_layout(
             scene=dict(
-                xaxis=dict(title='X (heel-toe) mm', backgroundcolor="rgb(230, 230,230)"),
-                yaxis=dict(title='Y (front-back) mm', backgroundcolor="rgb(230, 230,230)"),
-                zaxis=dict(title='Z (height) mm', backgroundcolor="rgb(230, 230,230)"),
-                aspectmode='data'
+                xaxis=dict(
+                    title='X (heel-toe) mm',
+                    backgroundcolor="rgb(240, 240,240)",
+                    gridcolor="rgb(200, 200, 200)"
+                ),
+                yaxis=dict(
+                    title='Y (front-back) mm',
+                    backgroundcolor="rgb(240, 240,240)",
+                    gridcolor="rgb(200, 200, 200)"
+                ),
+                zaxis=dict(
+                    title='Z (height) mm',
+                    backgroundcolor="rgb(240, 240,240)",
+                    gridcolor="rgb(200, 200, 200)"
+                ),
+                aspectmode='data',
+                camera=dict(
+                    eye=dict(x=1.5, y=1.5, z=1.2)  # Better default view angle
+                )
             ),
             width=700,
             height=600,
             margin=dict(l=0, r=0, b=0, t=30),
-            title="3D Wedge Preview (Interactive - Drag to Rotate)"
+            title="3D Wedge Preview (Drag to Rotate, Scroll to Zoom)"
         )
 
         return fig
 
     except Exception as e:
         print(f"3D preview error: {str(e)}")
-        # Return a simple error figure
-        import plotly.graph_objects as go
-        fig = go.Figure()
-        fig.add_annotation(
-            text=f"3D preview unavailable: {str(e)}<br>Generate STEP file and open in FreeCAD for full visualization",
-            xref="paper", yref="paper",
-            x=0.5, y=0.5, showarrow=False
-        )
-        fig.update_layout(width=700, height=600)
-        return fig
+        import traceback
+        traceback.print_exc()
+
+        # Fallback to bounding box preview
+        try:
+            bbox = cq_solid.val().BoundingBox()
+            return create_bbox_preview(bbox)
+        except:
+            # Ultimate fallback - error message
+            import plotly.graph_objects as go
+            fig = go.Figure()
+            fig.add_annotation(
+                text=f"3D preview temporarily unavailable.<br>Generate STEP file and open in FreeCAD for visualization",
+                xref="paper", yref="paper",
+                x=0.5, y=0.5, showarrow=False,
+                font=dict(size=14)
+            )
+            fig.update_layout(width=700, height=600)
+            return fig
 
 
 def create_bbox_preview(bbox):
