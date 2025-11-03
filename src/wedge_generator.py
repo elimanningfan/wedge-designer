@@ -11,6 +11,9 @@ from typing import Optional
 
 from config_loader import load_config
 from utils import validate_wedge_geometry
+from geometry.hosel import WedgeHosel
+from geometry.blade import WedgeBlade
+from geometry.sole import WedgeSole
 
 
 def generate_wedge(config_path: str, output_dir: str = "output/step_files") -> str:
@@ -28,18 +31,58 @@ def generate_wedge(config_path: str, output_dir: str = "output/step_files") -> s
     config = load_config(config_path)
     
     print("\nGenerating wedge geometry...")
-    
-    # TODO: Implement geometry generation
-    # This is where you'll orchestrate the creation of:
-    # 1. Hosel (from geometry.hosel import WedgeHosel)
-    # 2. Blade (from geometry.blade import WedgeBlade)
-    # 3. Sole (from geometry.sole import WedgeSole)
-    # 4. Grooves (face details)
-    # Then combine them all together
-    
-    # For now, create a placeholder cylinder to test the pipeline
-    print("  [Placeholder: Creating test cylinder - implement actual geometry!]")
-    wedge = cq.Workplane("XY").cylinder(40, 15)
+
+    # Extract configuration sections
+    wedge_specs = config.get('wedge_specs', {})
+    hosel_config = wedge_specs.get('hosel', {})
+    sole_config = wedge_specs.get('sole', {})
+    blade_length = wedge_specs.get('blade_length', 74)
+
+    # 1. Generate hosel
+    print("  Creating hosel...")
+    hosel = WedgeHosel(hosel_config)
+    hosel.validate()
+    hosel_geometry = hosel.generate()
+
+    # 2. Generate blade
+    print("  Creating blade...")
+    blade = WedgeBlade(wedge_specs)
+    blade.validate()
+    blade_geometry = blade.generate()
+
+    # Add grooves to face
+    if 'face' in wedge_specs and 'grooves' in wedge_specs['face']:
+        print("  Adding grooves to face...")
+        groove_config = wedge_specs['face']['grooves']
+        blade_geometry = blade.add_grooves(blade_geometry, groove_config)
+
+    # 3. Generate sole (with advanced grind features)
+    print("  Creating sole with grind...")
+    sole = WedgeSole(wedge_specs)
+    sole.validate()
+    sole_geometry = sole.generate_with_grind(blade_length)
+
+    # 4. Position and combine components
+    print("  Assembling components...")
+
+    # Position hosel: move it up to sit on top of blade
+    # The hosel should be at the heel side
+    hosel_positioned = hosel_geometry.translate((
+        -blade_length / 2 + 10,  # Near heel (left side)
+        0,
+        45  # Height above ground
+    ))
+
+    # Apply lie angle to hosel (tilt it)
+    lie_angle = wedge_specs.get('lie', 64)
+    hosel_positioned = hosel_positioned.rotate(
+        (-blade_length / 2 + 10, 0, 45),  # Rotate around heel position
+        (1, 0, 0),  # Rotate around X axis (heel-toe line)
+        -(90 - lie_angle)  # Convert lie angle to tilt
+    )
+
+    # Combine all components using union
+    wedge = blade_geometry.union(sole_geometry).union(hosel_positioned)
     
     # Validate geometry
     print("\nValidating geometry...")
@@ -73,13 +116,14 @@ def export_step(
     
     # Generate filename
     name = config.get('wedge_specs.name', 'wedge')
-    name = name.replace(' ', '_').lower()
-    
+    # Sanitize filename: replace spaces and slashes
+    name = name.replace(' ', '_').replace('/', '-').lower()
+
     loft = config.get('wedge_specs.loft', '')
     bounce = config.get('wedge_specs.bounce', '')
-    
+
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    
+
     filename = f"{name}_{loft}_{bounce}_{timestamp}.step"
     filepath = os.path.join(output_dir, filename)
     

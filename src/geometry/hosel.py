@@ -34,30 +34,34 @@ class WedgeHosel:
     def generate(self) -> cq.Workplane:
         """
         Generate hosel geometry.
-        
+
         Returns:
             CadQuery Workplane with hosel geometry
-        
+
         Process:
             1. Create outer cylinder
             2. Create inner bore cylinder
             3. Subtract bore from outer cylinder
         """
-        # TODO: Implement hosel geometry
-        # 
-        # Steps:
-        # 1. Create outer cylinder:
-        #    hosel = cq.Workplane("XY").cylinder(self.height, self.outer_diameter/2)
-        # 
-        # 2. Create bore (inner cylinder):
-        #    bore = cq.Workplane("XY").cylinder(self.bore_depth, self.bore_diameter/2)
-        # 
-        # 3. Subtract bore from hosel:
-        #    hosel = hosel.cut(bore)
-        # 
-        # 4. Return the hosel geometry
-        
-        raise NotImplementedError("Hosel geometry generation not yet implemented")
+        # Create outer cylinder (hosel body)
+        # Start at origin, build along Z axis
+        hosel = (
+            cq.Workplane("XY")
+            .cylinder(self.height, self.outer_diameter / 2)
+        )
+
+        # Create inner bore (shaft hole)
+        # Build from top down to bore_depth
+        bore = (
+            cq.Workplane("XY")
+            .workplane(offset=self.height / 2)  # Start at top of hosel
+            .cylinder(self.bore_depth, self.bore_diameter / 2)
+        )
+
+        # Subtract bore from hosel
+        hosel = hosel.cut(bore)
+
+        return hosel
     
     def validate(self) -> bool:
         """
@@ -88,6 +92,8 @@ class WedgeHosel:
 
 
 if __name__ == "__main__":
+    import os
+
     # Test hosel generation
     test_config = {
         'height': 42,
@@ -95,17 +101,26 @@ if __name__ == "__main__":
         'bore_diameter': 9.4,
         'bore_depth': 38
     }
-    
+
     hosel = WedgeHosel(test_config)
     hosel.validate()
-    
+
     print("Hosel configuration:")
     print(f"  Height: {hosel.height}mm")
     print(f"  Outer diameter: {hosel.outer_diameter}mm")
     print(f"  Bore diameter: {hosel.bore_diameter}mm (0.370\")")
     print(f"  Bore depth: {hosel.bore_depth}mm")
-    
-    # Uncomment when generate() is implemented:
-    # hosel_geometry = hosel.generate()
-    # cq.exporters.export(hosel_geometry, "output/hosel_test.step")
-    # print("\n✓ Hosel exported to output/hosel_test.step")
+
+    # Generate and export hosel
+    print("\nGenerating hosel geometry...")
+    hosel_geometry = hosel.generate()
+
+    # Ensure output directory exists
+    os.makedirs("output/step_files", exist_ok=True)
+
+    output_path = "output/step_files/hosel_test.step"
+    cq.exporters.export(hosel_geometry, output_path)
+
+    file_size = os.path.getsize(output_path)
+    print(f"\n✓ Hosel exported to {output_path}")
+    print(f"  File size: {file_size:,} bytes")

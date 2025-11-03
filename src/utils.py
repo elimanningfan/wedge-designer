@@ -74,20 +74,27 @@ def validate_weight(actual: float, target: float, tolerance: float = 5.0) -> boo
 def calculate_center_of_gravity(cq_solid: cq.Workplane) -> Tuple[float, float, float]:
     """
     Calculate center of gravity (centroid) of solid.
-    
+
     Args:
         cq_solid: CadQuery Workplane containing solid geometry
-    
+
     Returns:
         (x, y, z) coordinates of center of gravity in mm
-    
+
     Note:
         CadQuery provides geometric centroid. For true CG with
         variable density, more complex calculation needed.
     """
-    # Get center of mass from CadQuery
-    cg = cq_solid.val().CenterOfMass()
-    
+    # Get the shape from the workplane
+    shape = cq_solid.val()
+
+    # Get center of mass - works for both Solid and Compound
+    try:
+        cg = shape.CenterOfMass()
+    except AttributeError:
+        # If CenterOfMass doesn't exist, try Center() as fallback
+        cg = shape.Center()
+
     return (cg.x, cg.y, cg.z)
 
 
