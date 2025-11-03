@@ -1,0 +1,109 @@
+# Vokey-Style 56° Wedge with 8° Bounce
+# Baseline configuration for versatile, full-sole grind (F/M grind style)
+
+wedge_specs:
+  # Identification
+  name: "Vokey 56/8 Clone"
+  description: "Versatile full-sole grind, great for neutral conditions"
+  
+  # Primary Angles
+  loft: 56          # degrees - club loft
+  lie: 64           # degrees - shaft angle to ground
+  bounce: 8         # degrees - measured at center of sole
+  face_progression: 2.5  # mm - distance face is behind/ahead of hosel centerline (+ = forward)
+  
+  # Blade Dimensions
+  blade_length: 74        # mm - heel to toe
+  face_height: 49         # mm - leading edge to topline
+  topline_thickness: 3.0  # mm - thickness of top edge
+  
+  # Hosel Specifications (CRITICAL - must be exact for shaft fitting)
+  hosel:
+    height: 42              # mm - overall hosel length
+    outer_diameter: 14.5    # mm - OD at connection point (tapers from 15mm)
+    bore_diameter: 9.4      # mm - 0.370" standard shaft bore
+    bore_depth: 38          # mm - how deep the shaft inserts
+    bore_taper: 0           # degrees - parallel tip (0°) for first 25mm
+  
+  # Sole Geometry (The Heart of Wedge Design)
+  sole:
+    width_center: 21        # mm - sole width at center point
+    width_heel: 18          # mm - sole width 15mm from heel
+    width_toe: 17           # mm - sole width 15mm from toe
+    
+    # Edge Treatments
+    leading_edge_radius: 0.6   # mm - slight radius (not sharp, not blunt)
+    trailing_edge_relief: 2.0  # mm - height of relief at back edge
+    trailing_edge_start: 15    # mm - distance from back where relief begins
+    
+    # Camber/Relief (What makes the grind work)
+    heel_relief_start: 12      # mm - distance from heel where camber begins
+    heel_relief_angle: 1.5     # degrees - additional camber at heel
+    toe_relief_start: 18       # mm - distance from toe where camber begins
+    toe_relief_angle: 2.0      # degrees - additional camber at toe
+    
+    # Bounce Curve
+    bounce_rocker_radius: 180  # mm - front-to-back curve radius (subtle)
+    sole_camber_radius: 200    # mm - overall sole curvature
+  
+  # Face & Grooves
+  face:
+    surface_roughness: 110     # Ra micro-inches (100-120 for spin)
+    
+    grooves:
+      spacing: 3.81            # mm - USGA maximum (cannot exceed)
+      width: 0.9               # mm - V-groove width
+      depth: 0.4               # mm - groove depth
+      count: 12                # number of grooves on face
+      edge_clearance: 3        # mm - distance from heel/toe edges
+      groove_type: "V"         # V-groove or U-groove
+  
+  # Weight & Balance
+  weight:
+    target_head_weight: 292    # grams - final head weight
+    tolerance: 5               # grams - acceptable variance (+/-)
+    
+    center_of_gravity:
+      from_face: 20            # mm - CG distance from face
+      from_heel: 37            # mm - CG distance from heel
+      from_sole: 19            # mm - CG height from sole
+    
+    swingweight_target: "D4"   # Target swingweight at 35.5" length
+  
+  # Material Specifications
+  material:
+    type: "8620 carbon steel"
+    density: 7.85              # g/cm³ - for weight calculations
+    
+    heat_treatment:
+      face_hardness: "50-52 HRC"     # Rockwell hardness for face
+      body_hardness: "30-35 HRC"     # Softer body for feel
+      
+    finish: "raw"              # Options: raw, chrome, black_oxide, brushed
+  
+  # Manufacturing Notes
+  manufacturing:
+    tolerances:
+      hosel_bore: 0.025        # mm - critical tolerance (±0.001")
+      loft_lie: 0.5            # degrees - angle tolerance
+      sole_width: 0.3          # mm - sole dimension tolerance
+      overall_weight: 5        # grams - weight tolerance
+    
+    critical_notes:
+      - "Hosel bore must be exactly 9.4mm (0.370\") for standard shaft"
+      - "Heat treat face to 50-52 HRC after machining"
+      - "Leading edge radius is subtle - verify with sample"
+      - "Grooves must comply with USGA spacing (3.81mm max)"
+      - "Inspect sole relief curves for smooth transitions"
+
+# Grind Profile Notes
+# This is a versatile "F" or "M" style grind:
+# - Full sole width at center (21mm) for stability
+# - Moderate heel/toe relief for workability
+# - 8° bounce is middle-of-the-road (not high, not low)
+# - Works from tight lies, bunkers, and rough
+# 
+# Compare to other grinds:
+# - S Grind: More heel relief, narrower sole (for diggers)
+# - K Grind: Wide sole, more bounce (for bunkers)
+# - L Grind: Low bounce, minimal relief (for sweepers)

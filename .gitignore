@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Project specific
+output/step_files/*.step
+output/step_files/*.stp
+*.log
+
+# Keep directory structure
+!output/step_files/.gitkeep
+!configs/.gitkeep

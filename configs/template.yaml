@@ -1,0 +1,124 @@
+# Custom Wedge Template
+# Copy this file and customize for your own wedge design
+
+wedge_specs:
+  # Identification
+  name: "My Custom Wedge"
+  description: "Custom grind for [your playing style / conditions]"
+  
+  # Primary Angles
+  loft: 56          # degrees (typical wedges: 50-64°)
+  lie: 64           # degrees (typical wedges: 62-66°)
+  bounce: 8         # degrees (low: 4-6°, mid: 8-10°, high: 12-14°)
+  face_progression: 2.5  # mm (+ = forward of hosel, - = behind)
+  
+  # Blade Dimensions
+  blade_length: 74        # mm (heel to toe)
+  face_height: 49         # mm (leading edge to topline)
+  topline_thickness: 3.0  # mm
+  
+  # Hosel Specifications (CRITICAL - don't change unless you know why)
+  hosel:
+    height: 42              # mm
+    outer_diameter: 14.5    # mm
+    bore_diameter: 9.4      # mm (0.370" standard - DO NOT CHANGE)
+    bore_depth: 38          # mm
+    bore_taper: 0           # degrees
+  
+  # Sole Geometry
+  # This is where you customize your grind!
+  sole:
+    width_center: 21        # mm (narrow: 18, wide: 24)
+    width_heel: 18          # mm
+    width_toe: 17           # mm
+    
+    # Edge Treatments
+    leading_edge_radius: 0.6   # mm (0.5 = sharp, 1.0 = rounded)
+    trailing_edge_relief: 2.0  # mm
+    trailing_edge_start: 15    # mm from back edge
+    
+    # Camber/Relief (Your custom grind)
+    # More relief = more versatility but less forgiveness
+    heel_relief_start: 12      # mm from heel
+    heel_relief_angle: 1.5     # degrees (more for opening face)
+    toe_relief_start: 18       # mm from toe
+    toe_relief_angle: 2.0      # degrees
+    
+    # Bounce Curves
+    bounce_rocker_radius: 180  # mm (smaller = more curve)
+    sole_camber_radius: 200    # mm
+  
+  # Face & Grooves
+  face:
+    surface_roughness: 110     # Ra micro-inches (100-120 for spin)
+    
+    grooves:
+      spacing: 3.81            # mm (USGA max - do not exceed)
+      width: 0.9               # mm
+      depth: 0.4               # mm
+      count: 12                # number of grooves
+      edge_clearance: 3        # mm from heel/toe
+      groove_type: "V"         # V or U
+  
+  # Weight & Balance
+  weight:
+    target_head_weight: 292    # grams
+    tolerance: 5               # grams
+    
+    center_of_gravity:
+      from_face: 20            # mm
+      from_heel: 37            # mm
+      from_sole: 19            # mm
+    
+    swingweight_target: "D4"
+  
+  # Material Specifications
+  material:
+    type: "8620 carbon steel"  # or: 1020 steel, 304 stainless, etc.
+    density: 7.85              # g/cm³
+    
+    heat_treatment:
+      face_hardness: "50-52 HRC"
+      body_hardness: "30-35 HRC"
+      
+    finish: "raw"              # Options: raw, chrome, black_oxide, brushed
+  
+  # Manufacturing Tolerances
+  manufacturing:
+    tolerances:
+      hosel_bore: 0.025        # mm (±0.001")
+      loft_lie: 0.5            # degrees
+      sole_width: 0.3          # mm
+      overall_weight: 5        # grams
+    
+    critical_notes:
+      - "Verify hosel bore diameter before shaft installation"
+      - "Heat treatment required for face durability"
+      - "Check groove spacing for USGA compliance"
+
+# GRIND DESIGN NOTES:
+# 
+# Popular Grinds (for reference):
+# 
+# S Grind (for diggers who open face):
+#   - Narrow sole (18-19mm)
+#   - More heel relief (3-4°)
+#   - Less toe relief (1-2°)
+# 
+# M Grind (versatile, all-around):
+#   - Medium sole (20-21mm)
+#   - Moderate heel relief (1.5-2°)
+#   - Moderate toe relief (2°)
+#   - This template!
+# 
+# K Grind (bunker/soft conditions):
+#   - Wide sole (23-25mm)
+#   - Full width heel-to-toe
+#   - Higher bounce (10-14°)
+# 
+# L Grind (sweepers, tight lies):
+#   - Narrow sole (17-18mm)
+#   - Low bounce (4-6°)
+#   - Minimal relief
+# 
+# Customize the sole section above to match your needs!
